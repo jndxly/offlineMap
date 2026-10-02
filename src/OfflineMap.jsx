@@ -1,47 +1,49 @@
-import { useEffect, useRef } from "react";
-// import maplibregl from "maplibre-gl";
-import { Map, addProtocol, removeProtocol, setWorkerUrl } from "maplibre-gl";
-import "maplibre-gl/dist/maplibre-gl.css";
+import { useEffect, useRef } from 'react';
+import { Map, NavigationControl, ScaleControl } from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
+import { offlineStyle } from './mapStyle';
 
-// import Map from 'react-map-gl/maplibre';
-// import 'maplibre-gl/dist/maplibre-gl.css';
+// 数据范围（大陆: china-20260930.pmtiles [73.5, 18.1, 135.1, 53.6]
+//          台湾: taiwan-261001.pmtiles [118.10, 20.73, 122.93, 26.60]，已包含在大陆范围内）
+const BOUNDS = [73.5, 18.1, 135.1, 53.6];
 
 export default function OfflineMap() {
   const mapContainer = useRef(null);
   const mapRef = useRef(null);
 
   useEffect(() => {
-    if (mapRef.current || !mapContainer.current) return;
+    if (!mapContainer.current) return;
 
-    mapRef.current = new Map({
+    const map = new Map({
       container: mapContainer.current,
-      style: {
-        version: 8,
-        sources: {
-          "my-offline-tiles": {
-            type: "vector", // 如果是栅格瓦片，改为 "raster"
-            // 关键：路径前必须加 pmtiles:// 前缀
-            // 假设你的 output.pmtiles 放在 public 根目录下
-            url: "pmtiles:///shanghai-260923.pmtiles",
-          },
-        },
-        layers: [
-          // 这里的图层配置取决于你的 PMTiles 内部结构
-          // 你需要根据实际的 source-layer 名称来写
-          {
-            id: "background",
-            type: "background",
-            paint: { "background-color": "#f8f4f0" },
-          },
-        ],
-      },
-      center: [121.37, 31.13],
-      zoom: 10,
+      style: offlineStyle,
+      center: [116.3974, 39.9097], // 北京天安门
+      zoom: 11,
+      minZoom: 0,
+      maxZoom: 14, // 数据最高到 z14
+      maxBounds: [
+        [BOUNDS[0] - 0.5, BOUNDS[1] - 0.4],
+        [BOUNDS[2] + 0.5, BOUNDS[3] + 0.4],
+      ],
+      attributionControl: { compact: true },
     });
 
-    return () => mapRef.current?.remove();
+    map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
+    map.addControl(new ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
+
+    mapRef.current = map;
+    if (import.meta.env.DEV) window.__offlineMap = map; // 便于调试
+
+    return () => {
+      mapRef.current = null;
+      map.remove();
+    };
   }, []);
 
-  return <div ref={mapContainer} style={{ width: "100vw", height: "100vh" }} />;
+  return (
+    <div
+      ref={mapContainer}
+      style={{ width: '100vw', height: '100vh' }}
+    />
+  );
 }
-

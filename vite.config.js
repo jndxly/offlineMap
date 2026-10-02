@@ -7,7 +7,8 @@ export default defineConfig({
     exclude: ['maplibre-gl'],
   },
   plugins: [react()],
-  server: { 
+  server: {
+    host: true, // 监听 0.0.0.0，允许局域网/外部通过本机 IP 访问
     //用来配置跨域
     proxy: {
       '/amap1': {
