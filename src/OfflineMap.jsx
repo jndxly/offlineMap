@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Map, NavigationControl, ScaleControl } from 'maplibre-gl';
+import { Map, Marker, NavigationControl, ScaleControl } from 'maplibre-gl';
 import 'maplibre-gl/dist/maplibre-gl.css';
 import { offlineStyle } from './mapStyle';
 
@@ -31,10 +31,30 @@ export default function OfflineMap() {
     map.addControl(new NavigationControl({ visualizePitch: true }), 'top-right');
     map.addControl(new ScaleControl({ maxWidth: 100, unit: 'metric' }), 'bottom-left');
 
+    // 在指定位置添加 ⭐ 标记
+    const STAR_LNG_LAT = [121.37, 31.13];
+    const markerEl = document.createElement('div');
+    markerEl.textContent = '⭐';
+    markerEl.style.fontSize = '24px';
+    markerEl.style.cursor = 'pointer';
+    markerEl.title = '点击查看经纬度';
+
+    const marker = new Marker({ element: markerEl })
+      .setLngLat(STAR_LNG_LAT)
+      .addTo(map);
+
+    // 点击标记时打印当前经纬度信息
+    markerEl.addEventListener('click', (e) => {
+      e.stopPropagation();
+      const lngLat = marker.getLngLat();
+      console.log(`标记经纬度: 经度 ${lngLat.lng}, 纬度 ${lngLat.lat}`);
+    });
+
     mapRef.current = map;
     if (import.meta.env.DEV) window.__offlineMap = map; // 便于调试
 
     return () => {
+      marker.remove();
       mapRef.current = null;
       map.remove();
     };
