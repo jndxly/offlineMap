@@ -352,25 +352,6 @@ const BASE_LAYERS = [
 
     /* ---------- 地名（place） ---------- */
     {
-      id: 'place-country',
-      type: 'symbol',
-      source: 'mainland',
-      'source-layer': 'place',
-      filter: ['==', ['get', 'class'], 'country'],
-      layout: {
-        'text-field': ['get', 'name:latin'],
-        'text-font': ['NotoSansBold'],
-        'text-size': ['interpolate', ['linear'], ['zoom'], 2, 11, 6, 15],
-        'text-letter-spacing': 0.25,
-        'text-transform': 'uppercase',
-      },
-      paint: {
-        'text-color': '#6b6459',
-        'text-halo-color': '#f5f2ec',
-        'text-halo-width': 1.5,
-      },
-    },
-    {
       id: 'place-state',
       type: 'symbol',
       source: 'mainland',
