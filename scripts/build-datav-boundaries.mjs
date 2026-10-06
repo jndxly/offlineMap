@@ -1,12 +1,51 @@
 // 从 .datav/ 缓存生成项目用边界 GeoJSON -> public/standard-2024/
-// 数据源: 阿里云 DataV GeoAtlas (areas_v3, 源自天地图/民政部, 行政区划更新至 2024 年,
+// 数据源: 阿里云 DataV GeoAtlas (areas_v3, 源自高德, 行政区划更新至 2024 年,
 //         边界画法与官方标准地图一致: 藏南按传统习惯线, 含九段线与台湾)
+// ⚠ 坐标系: DataV 数据为 GCJ-02 (已实测: 香港区界相对 OSM WGS84 偏移 +597m 正东,
+//         与 GCJ-02 在香港的理论偏移一致; 川陕/晋冀内陆省界同样 ~400-500m 偏移)。
+//         本脚本先做 GCJ-02 -> WGS84 反算, 再抽稀输出。
 // 用法: node scripts/build-datav-boundaries.mjs
 import { readFileSync, writeFileSync, mkdirSync, statSync } from 'fs';
 
 const SRC = '.datav';
 const OUT = 'public/standard-2024';
 mkdirSync(OUT, { recursive: true });
+
+/* ---------------- GCJ-02 -> WGS84 (标准公开算法) ---------------- */
+const GCJ_A = 6378245.0;
+const GCJ_EE = 0.00669342162296594323;
+function transformLat(x, y) {
+  let ret = -100.0 + 2.0 * x + 3.0 * y + 0.2 * y * y + 0.1 * x * y + 0.2 * Math.sqrt(Math.abs(x));
+  ret += ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0) / 3.0;
+  ret += ((20.0 * Math.sin(y * Math.PI) + 40.0 * Math.sin((y / 3.0) * Math.PI)) * 2.0) / 3.0;
+  ret += ((160.0 * Math.sin((y / 12.0) * Math.PI) + 320 * Math.sin((y * Math.PI) / 30.0)) * 2.0) / 3.0;
+  return ret;
+}
+function transformLon(x, y) {
+  let ret = 300.0 + x + 2.0 * y + 0.1 * x * x + 0.1 * x * y + 0.1 * Math.sqrt(Math.abs(x));
+  ret += ((20.0 * Math.sin(6.0 * x * Math.PI) + 20.0 * Math.sin(2.0 * x * Math.PI)) * 2.0) / 3.0;
+  ret += ((20.0 * Math.sin(x * Math.PI) + 40.0 * Math.sin((x / 3.0) * Math.PI)) * 2.0) / 3.0;
+  ret += ((150.0 * Math.sin((x / 12.0) * Math.PI) + 300.0 * Math.sin((x / 30.0) * Math.PI)) * 2.0) / 3.0;
+  return ret;
+}
+function gcjDelta(lng, lat) {
+  // 偏移场仅定义在中国区域内, 域外为 0
+  if (lng < 72.004 || lng > 137.8347 || lat < 0.8293 || lat > 55.8271) return [0, 0];
+  let dLat = transformLat(lng - 105.0, lat - 35.0);
+  let dLng = transformLon(lng - 105.0, lat - 35.0);
+  const radLat = (lat / 180.0) * Math.PI;
+  let magic = Math.sin(radLat);
+  magic = 1 - GCJ_EE * magic * magic;
+  const sqrtMagic = Math.sqrt(magic);
+  dLat = (dLat * 180.0) / (((GCJ_A * (1 - GCJ_EE)) / (magic * sqrtMagic)) * Math.PI);
+  dLng = (dLng * 180.0) / ((GCJ_A / sqrtMagic) * Math.cos(radLat) * Math.PI);
+  return [dLng, dLat];
+}
+// GCJ02 -> WGS84 (一阶近似, 偏移场平滑, 残差 < 1m)
+const gcjToWgs = (lng, lat) => {
+  const [dLng, dLat] = gcjDelta(lng, lat);
+  return [lng - dLng, lat - dLat];
+};
 
 /* ---------------- Douglas-Peucker 抽稀 (与 convert-standard-boundary.mjs 一致) ---------------- */
 function sqSegDist(p, a, b) {
@@ -47,14 +86,14 @@ const r5 = (v) => Math.round(v * 1e5) / 1e5;
 const ringsOf = (geom) =>
   (geom.type === 'Polygon' ? [geom.coordinates] : geom.coordinates).flat();
 
-// 环 -> 线 (去掉首尾重复闭合点, 抽稀)
+// 环 -> 线 (GCJ02->WGS84 反算, 去掉首尾重复闭合点, 抽稀)
 const ringToLine = (ring, tol) => {
   let pts = ring;
   if (pts.length > 2) {
     const f = pts[0], l = pts[pts.length - 1];
     if (f[0] === l[0] && f[1] === l[1]) pts = pts.slice(0, -1);
   }
-  return simplify(pts, tol).map(([lo, la]) => [r5(lo), r5(la)]);
+  return simplify(pts.map(([lo, la]) => gcjToWgs(lo, la)), tol).map(([lo, la]) => [r5(lo), r5(la)]);
 };
 
 function saveFC(name, features) {
@@ -93,13 +132,23 @@ saveFC('national-boundary.json', [
   },
 ]);
 
-/* ---------------- 2. 省级行政区面 (排除九段线要素) ---------------- */
-const provFeatures = full.features.filter((f) => f.properties.adcode !== '100000_JD');
+/* ---------------- 2. 省级行政区面 (排除九段线要素, GCJ->WGS84) ---------------- */
+const provFeaturesRaw = full.features.filter((f) => f.properties.adcode !== '100000_JD');
+const convGeom = (geom) => {
+  if (geom.type === 'Polygon') {
+    return { type: 'Polygon', coordinates: geom.coordinates.map((ring) => ring.map(([lo, la]) => gcjToWgs(lo, la))) };
+  }
+  return {
+    type: 'MultiPolygon',
+    coordinates: geom.coordinates.map((poly) => poly.map((ring) => ring.map(([lo, la]) => gcjToWgs(lo, la)))),
+  };
+};
+const provFeatures = provFeaturesRaw.map((f) => ({ ...f, geometry: convGeom(f.geometry) }));
 saveFC('province-areas.json', provFeatures);
 
 /* ---------------- 3. 省界线: 省级要素所有环 ---------------- */
 const provinceLines = [];
-for (const f of provFeatures) {
+for (const f of provFeaturesRaw) {
   for (const ring of ringsOf(f.geometry)) {
     const line = ringToLine(ring, 0.0005);
     if (line.length >= 2) provinceLines.push(line);

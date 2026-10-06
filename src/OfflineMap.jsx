@@ -40,7 +40,7 @@ export default function OfflineMap() {
       center: [116.3974, 39.9097], // 北京天安门
       zoom: 11,
       minZoom: 0,
-      maxZoom: 14, // 数据最高到 z14
+      maxZoom: 16, // 瓦片数据到 z14, z14 以上由 MapLibre 矢量瓦片 overzoom 渲染 (几何精度仍由 z14 数据决定)
       maxBounds: [
         [BOUNDS[0] - 0.5, BOUNDS[1] - 0.4],
         [BOUNDS[2] + 0.5, BOUNDS[3] + 0.4],
