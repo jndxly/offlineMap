@@ -9,6 +9,7 @@ lerna-debug.log*
 
 public/*.pmtiles
 public/fonts/*
+public/standard-2020
 
 node_modules
 dist

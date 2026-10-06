@@ -2,6 +2,9 @@
 // 数据源: public/china-20260930.pmtiles (大陆, zoom 0-14)
 //         public/taiwan-261001.pmtiles (台湾, zoom 0-14, 与大陆同一 schema)
 // 字体: public/fonts/NotoSansRegular, NotoSansBold (glyph PBF)
+// 行政边界: public/standard-2020/*.json (GS(2020)4619 官方标准地图, 已由
+//           scripts/convert-standard-boundary.mjs 从 SHP 转换为 WGS84 GeoJSON,
+//           替代 OSM boundary 层 —— OSM 的国界在藏南等段与官方标准地图偏差最大约 150km)
 
 export const TILESET = 'china-20260930.pmtiles';
 export const TAIWAN_TILESET = 'taiwan-261001.pmtiles';
@@ -17,6 +20,11 @@ const sources = {
     url: `pmtiles:///${TAIWAN_TILESET}`,
     attribution: '© OpenStreetMap contributors',
   },
+  // 官方标准地图 (GS(2020)4619) 边界与行政区划
+  'std-national': { type: 'geojson', data: '/standard-2020/national-boundary.json' },
+  'std-province': { type: 'geojson', data: '/standard-2020/province-boundary.json' },
+  'std-county': { type: 'geojson', data: '/standard-2020/county-boundary.json' },
+  'std-areas': { type: 'geojson', data: '/standard-2020/province-areas.json' },
 };
 
 // 基础图层模板（source 为 mainland；无 source 的图层如 background 不参与克隆）
@@ -25,6 +33,14 @@ const BASE_LAYERS = [
       id: 'background',
       type: 'background',
       paint: { 'background-color': '#f5f2ec' },
+    },
+
+    /* ---------- 官方国土范围填充 (GS(2020)4619 省级行政区) ---------- */
+    {
+      id: 'official-land',
+      type: 'fill',
+      source: 'std-areas',
+      paint: { 'fill-color': '#f6efdb' }, // 淡暖色区分国土范围 (藏南等区域 OSM 无数据, 也显示为中国版图)
     },
 
     /* ---------- 土地覆盖 ---------- */
@@ -173,16 +189,34 @@ const BASE_LAYERS = [
       },
     },
 
-    /* ---------- 行政边界 ---------- */
+    /* ---------- 行政边界 (GS(2020)4619 官方标准地图, 替代 OSM boundary 层) ---------- */
     {
-      id: 'boundary',
+      id: 'boundary-county',
       type: 'line',
-      source: 'mainland',
-      'source-layer': 'boundary',
+      source: 'std-county',
+      minzoom: 9,
+      paint: {
+        'line-color': '#cfcac1',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 9, 0.4, 14, 1],
+      },
+    },
+    {
+      id: 'boundary-province',
+      type: 'line',
+      source: 'std-province',
       paint: {
         'line-color': '#b8b2a8',
         'line-width': ['interpolate', ['linear'], ['zoom'], 5, 0.5, 12, 1.2],
         'line-dasharray': [3, 2],
+      },
+    },
+    {
+      id: 'boundary-national',
+      type: 'line',
+      source: 'std-national',
+      paint: {
+        'line-color': '#8a8278',
+        'line-width': ['interpolate', ['linear'], ['zoom'], 3, 0.9, 8, 1.5, 14, 2.2],
       },
     },
 
