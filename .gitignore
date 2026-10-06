@@ -9,7 +9,15 @@ lerna-debug.log*
 
 public/*.pmtiles
 public/fonts/*
-public/standard-2020
+# 标准地图原始 SHP 二进制很大, 不进入 git; 但转换后的 GeoJSON 是运行时必需, 保留
+public/standard-2020/*.shp
+public/standard-2020/*.shx
+public/standard-2020/*.dbf
+public/standard-2020/*.prj
+public/standard-2020/*.sbn
+public/standard-2020/*.sbx
+public/standard-2020/*.zip
+public/standard-2024
 
 node_modules
 dist
