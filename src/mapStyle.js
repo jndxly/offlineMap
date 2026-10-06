@@ -2,9 +2,11 @@
 // 数据源: public/china-20260930.pmtiles (大陆, zoom 0-14)
 //         public/taiwan-261001.pmtiles (台湾, zoom 0-14, 与大陆同一 schema)
 // 字体: public/fonts/NotoSansRegular, NotoSansBold (glyph PBF)
-// 行政边界: public/standard-2020/*.json (GS(2020)4619 官方标准地图, 已由
-//           scripts/convert-standard-boundary.mjs 从 SHP 转换为 WGS84 GeoJSON,
-//           替代 OSM boundary 层 —— OSM 的国界在藏南等段与官方标准地图偏差最大约 150km)
+// 行政边界: public/standard-2024/*.json (行政区划更新至 2024 年 1 月, 边界画法与
+//           官方标准地图一致: 藏南按传统习惯线、含九段线与台湾; 由天地图/DataV
+//           GeoJSON 生成, 脚本见 scripts/download-datav.mjs + build-datav-boundaries.mjs,
+//           替代 OSM boundary 层 —— OSM 的国界在藏南等段与官方画法偏差最大约 150km)
+//           旧版 GS(2020)4619 数据保留在 public/standard-2020/ 作回退)
 
 export const TILESET = 'china-20260930.pmtiles';
 export const TAIWAN_TILESET = 'taiwan-261001.pmtiles';
@@ -20,11 +22,11 @@ const sources = {
     url: `pmtiles:///${TAIWAN_TILESET}`,
     attribution: '© OpenStreetMap contributors',
   },
-  // 官方标准地图 (GS(2020)4619) 边界与行政区划
-  'std-national': { type: 'geojson', data: '/standard-2020/national-boundary.json' },
-  'std-province': { type: 'geojson', data: '/standard-2020/province-boundary.json' },
-  'std-county': { type: 'geojson', data: '/standard-2020/county-boundary.json' },
-  'std-areas': { type: 'geojson', data: '/standard-2020/province-areas.json' },
+  // 官方画法行政区划 (区划更新至 2024 年 1 月)
+  'std-national': { type: 'geojson', data: '/standard-2024/national-boundary.json' },
+  'std-province': { type: 'geojson', data: '/standard-2024/province-boundary.json' },
+  'std-county': { type: 'geojson', data: '/standard-2024/county-boundary.json' },
+  'std-areas': { type: 'geojson', data: '/standard-2024/province-areas.json' },
 };
 
 // 基础图层模板（source 为 mainland；无 source 的图层如 background 不参与克隆）
@@ -35,7 +37,7 @@ const BASE_LAYERS = [
       paint: { 'background-color': '#f5f2ec' },
     },
 
-    /* ---------- 官方国土范围填充 (GS(2020)4619 省级行政区) ---------- */
+    /* ---------- 官方国土范围填充 (省级行政区, 区划更新至 2024 年) ---------- */
     {
       id: 'official-land',
       type: 'fill',
@@ -189,7 +191,7 @@ const BASE_LAYERS = [
       },
     },
 
-    /* ---------- 行政边界 (GS(2020)4619 官方标准地图, 替代 OSM boundary 层) ---------- */
+    /* ---------- 行政边界 (官方画法, 含九段线, 替代 OSM boundary 层) ---------- */
     {
       id: 'boundary-county',
       type: 'line',
