@@ -3,6 +3,7 @@ import { addProtocol, removeProtocol, setWorkerUrl } from 'maplibre-gl';
 import { Protocol } from 'pmtiles';
 import workerUrl from 'maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url';
 import OfflineMap from './OfflineMap';
+import './App.css'
 
 // maplibre-gl v6：worker 必须显式指定
 setWorkerUrl(workerUrl);

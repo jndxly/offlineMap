@@ -1,8 +1,60 @@
 #root {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
+  width: 100%;
+  margin: 0;
+  padding: 0;
   text-align: center;
+}
+
+/* ---------- 地图页面布局 ---------- */
+.map-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  padding-top: 16px;
+}
+
+.search-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.search-bar input {
+  width: 320px;
+  padding: 8px 12px;
+  font-size: 15px;
+  border: 1px solid #b8b2a8;
+  border-radius: 8px;
+  outline: none;
+}
+
+.search-bar input:focus {
+  border-color: #2b7fd4;
+}
+
+.search-bar button {
+  padding: 8px 20px;
+  font-size: 15px;
+  background-color: #2b7fd4;
+  color: #fff;
+  border-radius: 8px;
+}
+
+.search-bar button:hover {
+  background-color: #236cb6;
+}
+
+.search-error {
+  color: #c0392b;
+  font-size: 13px;
+}
+
+.map-view {
+  width: 90vw;
+  height: 60vh;
+  border: 1px solid #b8b2a8;
+  border-radius: 8px;
 }
 
 .logo {
